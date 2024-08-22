@@ -100,6 +100,7 @@ class MarioExpert:
         self.environment = MarioController(headless=headless)
 
         self.video = None
+        self.gamespace = None
 
     def choose_action(self):
         state = self.environment.game_state()
@@ -133,10 +134,16 @@ class MarioExpert:
         height, width, _ = frame.shape
 
         self.start_video(f"{self.results_path}/mario_expert.mp4", width, height)
+        #remove
+        self.start_gamespace(f"{self.results_path}/mario_vision.mp4", width, height)
 
         while not self.environment.get_game_over():
             frame = self.environment.grab_frame()
             self.video.write(frame)
+            #Remove
+            gamespace = self.environment.game_area()
+            self.gamespace.write(gamespace)
+            #Remove
 
             self.step()
 
@@ -147,6 +154,9 @@ class MarioExpert:
             json.dump(final_stats, file)
 
         self.stop_video()
+        #remove
+        self.stop_gamespace()
+        #remove
 
     def start_video(self, video_name, width, height, fps=30):
         """
@@ -161,3 +171,12 @@ class MarioExpert:
         Do NOT edit this method.
         """
         self.video.release()
+
+#additional functions
+    def start_gamespace(self,video_name,width,height,fps=30):
+        #this method is used to make a video of the game space
+        self.gamespace = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+
+    def stop_gamespace(self) -> None:
+        self.gamespace.release()
+        
