@@ -13,7 +13,16 @@ import random
 import cv2
 from mario_environment import MarioEnvironment
 from pyboy.utils import WindowEvent
+from enum import Enum, auto
+import curses
 
+class ACTION(Enum):
+    DOWN = 0
+    LEFT = 1
+    RIGHT = 2
+    UP = 3
+    BUTT_A = 4
+    BUTT_B = 5
 
 class MarioController(MarioEnvironment):
     """
@@ -109,7 +118,26 @@ class MarioExpert:
 
         # Implement your code here to choose the best action
         # time.sleep(0.1)
-        return random.randint(0, len(self.environment.valid_actions) - 1)
+        action = self.stdscr.getch()  # Non-blocking read
+        # action = input()  # Non-blocking read
+
+        if action == 97: #'a'
+            return ACTION.LEFT.value
+        elif action == 100: #'d'
+            return ACTION.RIGHT.value
+        elif action == 115: #'s'
+            return ACTION.DOWN.value
+        elif action == 119: #'w'
+            return ACTION.UP.value
+        elif action == 98: #'b'
+            return ACTION.BUTT_B.value
+        elif action == 110: #'n'
+            return ACTION.BUTT_A.value
+
+        #Defult option
+        return ACTION.UP.value
+        # return random.randint(0, len(self.environment.valid_actions) - 1)
+        return action
 
     def step(self):
         """
@@ -134,7 +162,12 @@ class MarioExpert:
         height, width, _ = frame.shape
 
         self.start_video(f"{self.results_path}/mario_expert.mp4", width, height)
-
+        #
+        self.stdscr = init_curses()
+        self.stdscr.clear()
+        create_popup(self.stdscr)
+        # self.popup_Win = create_popup(self.stdscr)
+        #
         while not self.environment.get_game_over():
             frame = self.environment.grab_frame()
             self.video.write(frame)
@@ -149,6 +182,8 @@ class MarioExpert:
             json.dump(final_stats, file)
 
         self.stop_video()
+        #
+        cleanup_curses()
 
 
     def start_video(self, video_name, width, height, fps=30):
@@ -165,5 +200,38 @@ class MarioExpert:
         """
         self.video.release()
 
+    #new functions
+def init_curses():
+    stdscr = curses.initscr()  # Initialize the screen
+    curses.curs_set(0)  # Hide the cursor
+    stdscr.nodelay(True)  # Make getch() non-blocking
+    curses.noecho()  # Do not display typed characters
+    curses.cbreak()  # Disable line buffering
+    return stdscr
 
-        
+def cleanup_curses():
+    curses.nocbreak()  # Restore line buffering
+    curses.echo()  # Re-enable character echo
+    curses.endwin()  # End the curses application
+
+def create_popup(stdscr):
+# Clear the screen
+# Hide the cursor
+    curses.curs_set(0)
+
+    # Get the size of the terminal
+    height, width = stdscr.getmaxyx()
+
+    # Display a message in the center of the screen
+    message = "Welcome to the Curses Application!"
+    message_y = height // 2
+    message_x = (width - len(message)) // 2
+    stdscr.addstr(message_y, message_x, message)
+
+    # Display instructions
+    instructions = "Press 'q' to quit."
+    instructions_y = message_y + 2
+    instructions_x = (width - len(instructions)) // 2
+    stdscr.addstr(instructions_y, instructions_x, instructions)
+    # Refresh the screen to show the content
+    stdscr.refresh()    
