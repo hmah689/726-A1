@@ -16,6 +16,7 @@ from pyboy.utils import WindowEvent
 from enum import Enum, auto
 import curses
 from collections import deque
+import numpy as np
 
 class ACTION(Enum):
     DOWN = 0
@@ -117,13 +118,13 @@ class MarioExpert:
 
         self.video = None
         self.gamespace = None
-        self.gamegraph = None
+        self.gamegraph = GameGraph() #create an empty list of nodes
 
     def choose_action(self):
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
         self.gamespace = self.environment.game_area()
-        self.gamegraph = self.generate_graph()
+        # self.gamegraph = self.generate_graph()
 
 
         # Implement your code here to choose the best action
@@ -159,38 +160,100 @@ class MarioExpert:
 
                 #Check if it is a brick. In the gamespace anything with a value greater than 10 mario can stand on
                 if self.gamespace[row][column] >= 10:
-                    #Check fall links
-                    #Check walk links
-                    #Check jump links
-                    #Check faith jump links
-                    pass
-                else:
-                    pass
+                    if self.check_node_valid(row,column) == False:
+                        pass
+                    else:
+                        if self.check_node_exist(row,column) == True:
+                        #create a node
+                            self.gamegraph.add_node(row,column)
+
+                        self.check_fall_link(row,column)
+                        self.check_walk_link(row,column)
+                        #Check walk links
+                        #Check jump links
+                        #Check faith jump links
         return
     
-    def check_fall_link(row,column,node,self):
+    def check_node_valid(self,row,col):
+        """Returns zero if the two spaces above the location are blocks i.e mario can't stand on the node"""
+        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamegraph[row-2][col] == 0):
+            return True
+        else:
+            return False
+        
+    def check_node_exist(self,row,col):
+        """Returns zero if there is no node present at the specified row col position"""
+        if self.gamegraph[row,col] == 0:
+            return False
+        else:
+            return True
+    
+    def check_fall_link(self,row,column):
         #check for empty space left
         if (column != 0) and (self.gamespace[row][column-1] == 0):
             #check for platform below
             platform_found = False
-            while row < len(self.gamespace) and platform_found == False:
+            row_temp = row
+            col_temp = column - 1
+            while row_temp < len(self.gamespace) and platform_found == False:
                 #check if the current node is a brick
-                if self.gamespace[row][column] >= 10:
+                if self.gamespace[row_temp][col_temp] >= 10:
                     #A fall link has been found
-                    #node.add_link(start_node,finish_node,link_type)
-                    pass
+                    if self.check_node_exist(row_temp,col_temp):
+                        self.gamegraph.add_node(row_temp,col_temp)
+                    #add a link
+                    self.gamegraph.node_array[row,column].add_edge(row_temp,col_temp,LINK.FALL)
+                    platform_found == True
+                else:
+                    row_temp+=1
 
-        #check for empty space to right    
-        if (column-1 != len(self.gamespace[row])) and (self.gamespace[row][column+1] == 0):
+        #check for empty space right
+        if (column < len(self.gamespace[row]) - 1) and (self.gamespace[row][column+1] == 0):
             #check for platform below
-            pass
-
-
+            platform_found = False
+            row_temp = row
+            col_temp = column + 1
+            while row_temp < len(self.gamespace) and platform_found == False:
+                #check if the current node is a brick
+                if self.gamespace[row_temp][col_temp] >= 10:
+                    #A fall link has been found
+                    if self.check_node_exist(row_temp,col_temp):
+                        self.gamegraph.add_node(row_temp,col_temp)
+                    #add a link
+                    self.gamegraph.node_array[row,column].add_edge(row_temp,col_temp,LINK.FALL)
+                    platform_found == True
+                else:
+                    row_temp+=1
         return
 
-    def check_walk_link(row,column,self):
+    def check_walk_link(self,row,column):
+        #check for nodes to the left
+        col_temp = column - 1
+        if (col_temp >= 0) and (self.gamespace[row][col_temp] >= 10):
+            #make sure the node is valid
+            if self.check_node_valid(row,col_temp) == False:
+                pass
+            else:
+                #add a node if there isn't already one
+                if self.check_node_exist(row,col_temp) == False:
+                    self.gamegraph.add_node(row,col_temp)
+                self.gamegraph.node_array[row,col_temp].add_edge(row,col_temp,LINK.WALK)
+        #check for node to the right
+        col_temp = column + 1
+        if (col_temp < len(self.gamespace[row])) and (self.gamespace[row][col_temp] >= 10):
+            #make sure the node is valid
+            if self.check_node_valid(row,col_temp) == False:
+                pass
+            else:
+                #add a node if there isn't already one
+                if self.check_node_exist(row,col_temp) == False:
+                    self.gamegraph.add_node(row,col_temp)
+                self.gamegraph.node_array[row,col_temp].add_edge(row,col_temp,LINK.WALK)
         return
-    def check_jump_link(row,column,self):
+    
+    def check_jump_link(self,row,column):
+        """A jump link is for nodes up to 3 blocks seperation vertically and 1 block seperation horizontally"""
+        
         return
     def check_faith_link(row,column,self):
         return
@@ -298,26 +361,24 @@ def create_popup(stdscr):
     # Refresh the screen to show the content
     stdscr.refresh()    
 
-    
+
 class GameGraph:
     def __init__(self) -> None:
-        self.node_list = deque()
+        self.node_array = np.zeroes(16,20) #generate blank matrix witt 16 rows and 20 cols which is the size of the gamespace
 
     def add_node(self,row,col):
-        self.node_list.append((Node(row,col)))
+        self.node_array[row,col] = Node()
 
 
 class Node:
-    def __init__(self,row,col):
-        self.row = row
-        self.col = col        
+    def __init__(self):   
         self.edge_list = deque()
     
-    def add_edge(self,finish,link_type):
-        self.edge_list.append(Edge(self,finish,link_type))
+    def add_edge(self,row, col, link_type):
+        self.edge_list.append(Edge(self,row,col,link_type))
 
 class Edge:
-    def __init__(self,start,finish,link_type):
-        self.start = start
-        self.finish = finish
+    def __init__(self,finish_row,finish_col,link_type):
+        self.finish_row = finish_row
+        self.finish_col = finish_col
         self.link_type = link_type
