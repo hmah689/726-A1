@@ -211,11 +211,13 @@ class MarioExpert:
         self.mario_row = 0
         self.status = STATUS.DONE
 
-    def choose_action(self):
+    def choose_action(self) -> Edge:
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
         self.gamespace = self.environment.game_area()
-        self.gamegraph = self.generate_graph()
+        self.generate_graph()
+        self.get_mario_pos()
+
 
         #get the path based on Marios position
 
@@ -253,7 +255,7 @@ class MarioExpert:
         # return random.randint(0, len(self.environment.valid_actions) - 1)
         # return ACTION.RIGHT.value
     
-    def generate_graph(self) -> None:
+    def generate_graph(self):
         """
         This method must be called after the gamespace has been generated. It uses the gamespace to generate a traversible linked graph. The transversible links are predefined i.e walk link, jump link, big jump link, fall link, pipe link
         """
@@ -396,13 +398,14 @@ class MarioExpert:
 
         This is just a very basic example
         """
-        #update the position of mario
-        self.get_mario_pos()
         #run actions
-        if self.status == STATUS.DONE.value:
+        if self.status.value == STATUS.DONE.value:
             edge = self.choose_action()
         else:
             self.status = self.environment.run_action(self.mario_row,self.mario_col,edge)
+            self.get_mario_pos()
+
+        return
 
 
     def play(self):
@@ -415,12 +418,7 @@ class MarioExpert:
         height, width, _ = frame.shape
 
         self.start_video(f"{self.results_path}/mario_expert.mp4", width, height)
-        #
-        self.stdscr = init_curses()
-        self.stdscr.clear()
-        create_popup(self.stdscr)
-        # self.popup_Win = create_popup(self.stdscr)
-        #
+
         while not self.environment.get_game_over():
             frame = self.environment.grab_frame()
             self.video.write(frame)
@@ -435,8 +433,6 @@ class MarioExpert:
             json.dump(final_stats, file)
 
         self.stop_video()
-        #
-        cleanup_curses()
 
 
     def start_video(self, video_name, width, height, fps=30):
@@ -464,40 +460,43 @@ class MarioExpert:
                 if grid == 1:
                     self.mario_row = max(self.mario_row,i)
                     self.mario_col = max(self.mario_col,j)
+
+        #remember mario must be standing on a brick, 
+        self.mario_row += 1
         return
 
-    #new functions
-def init_curses():
-    stdscr = curses.initscr()  # Initialize the screen
-    curses.curs_set(0)  # Hide the cursor
-    stdscr.nodelay(True)  # Make getch() non-blocking
-    curses.noecho()  # Do not display typed characters
-    curses.cbreak()  # Disable line buffering
-    return stdscr
+#     #new functions
+# def init_curses():
+#     stdscr = curses.initscr()  # Initialize the screen
+#     curses.curs_set(0)  # Hide the cursor
+#     stdscr.nodelay(True)  # Make getch() non-blocking
+#     curses.noecho()  # Do not display typed characters
+#     curses.cbreak()  # Disable line buffering
+#     return stdscr
 
-def cleanup_curses():
-    curses.nocbreak()  # Restore line buffering
-    curses.echo()  # Re-enable character echo
-    curses.endwin()  # End the curses application
+# def cleanup_curses():
+#     curses.nocbreak()  # Restore line buffering
+#     curses.echo()  # Re-enable character echo
+#     curses.endwin()  # End the curses application
 
-def create_popup(stdscr):
-# Clear the screen
-# Hide the cursor
-    curses.curs_set(0)
+# def create_popup(stdscr):
+# # Clear the screen
+# # Hide the cursor
+#     curses.curs_set(0)
 
-    # Get the size of the terminal
-    height, width = stdscr.getmaxyx()
+#     # Get the size of the terminal
+#     height, width = stdscr.getmaxyx()
 
-    # Display a message in the center of the screen
-    message = "Welcome to the Curses Application!"
-    message_y = height // 2
-    message_x = (width - len(message)) // 2
-    stdscr.addstr(message_y, message_x, message)
+#     # Display a message in the center of the screen
+#     message = "Welcome to the Curses Application!"
+#     message_y = height // 2
+#     message_x = (width - len(message)) // 2
+#     stdscr.addstr(message_y, message_x, message)
 
-    # Display instructions
-    instructions = "Press 'q' to quit."
-    instructions_y = message_y + 2
-    instructions_x = (width - len(instructions)) // 2
-    stdscr.addstr(instructions_y, instructions_x, instructions)
-    # Refresh the screen to show the content
-    stdscr.refresh()    
+#     # Display instructions
+#     instructions = "Press 'q' to quit."
+#     instructions_y = message_y + 2
+#     instructions_x = (width - len(instructions)) // 2
+#     stdscr.addstr(instructions_y, instructions_x, instructions)
+#     # Refresh the screen to show the content
+#     stdscr.refresh()    
