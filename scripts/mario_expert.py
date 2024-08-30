@@ -124,7 +124,7 @@ class MarioExpert:
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
         self.gamespace = self.environment.game_area()
-        # self.gamegraph = self.generate_graph()
+        self.gamegraph = self.generate_graph()
 
 
         # Implement your code here to choose the best action
@@ -154,50 +154,48 @@ class MarioExpert:
         """
         This method must be called after the gamespace has been generated. It uses the gamespace to generate a traversible linked graph. The transversible links are predefined i.e walk link, jump link, big jump link, fall link, pipe link
         """
-        for row in self.gamespace:
+        for i, row in enumerate(self.gamespace):
             #Check if the node has neighbors
-            for column in row:
-
+            for j,grid in enumerate(row):
                 #Check if it is a brick. In the gamespace anything with a value greater than 10 mario can stand on
-                if self.gamespace[row][column] >= 10:
-                    if self.check_node_valid(row,column) == False:
+                if grid >= 10:
+                    if self.check_node_valid(i,j) == False:
                         pass
                     else:
-                        if self.check_node_exist(row,column) == True:
+                        if self.check_node_exist(i,j) == False:
                         #create a node
-                            self.gamegraph.add_node(row,column)
+                            self.gamegraph.add_node(i,j)
 
-                        self.check_fall_link(row,column)
-                        self.check_walk_link(row,column)
-                        #Check walk links
-                        #Check jump links
+                        self.check_fall_link(i,j)
+                        self.check_walk_link(i,j)
+                        self.check_jump_link(i,j)
                         #Check faith jump links
         return
     
     def check_node_valid(self,row,col):
         """Returns true if mario can stand on the node"""
-        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamespace[row-2][col] == 0) and (self.gamespace[row][col] >= 10):
+        if (row > 2) and (self.gamespace[row-1][col] <= 1) and (self.gamespace[row-2][col] <= 1) and (self.gamespace[row][col] >= 10):
             return True
         else:
             return False
         
     def check_empty(self,row,col):
         """Returns true if the area above the node is empty i.e zero"""
-        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamespace[row-2][col] == 0):
+        if (row > 2) and (self.gamespace[row-1][col] <= 1) and (self.gamespace[row-2][col] <= 1):
             return True
         else:
             return False
         
     def check_node_exist(self,row,col):
         """Returns zero if there is no node present at the specified row col position"""
-        if self.gamegraph[row,col] == 0:
+        if self.gamegraph.node_array[row,col] == None:
             return False
         else:
             return True
     
     def check_fall_link(self,row,column):
         #check for empty space left
-        if (column != 0) and (self.gamespace[row][column-1] == 0):
+        if (column != 0) and (self.gamespace[row][column-1] <= 1):
             #check for platform below
             platform_found = False
             row_temp = row
@@ -206,16 +204,16 @@ class MarioExpert:
                 #check if the current node is a brick
                 if self.gamespace[row_temp][col_temp] >= 10:
                     #A fall link has been found
-                    if self.check_node_exist(row_temp,col_temp):
+                    if self.check_node_exist(row_temp,col_temp) == False:
                         self.gamegraph.add_node(row_temp,col_temp)
                     #add a link
                     self.gamegraph.node_array[row,column].add_edge(row_temp,col_temp,LINK.FALL)
-                    platform_found == True
+                    platform_found = True
                 else:
                     row_temp+=1
 
         #check for empty space right
-        if (column < len(self.gamespace[row]) - 1) and (self.gamespace[row][column+1] == 0):
+        if (column < len(self.gamespace[row]) - 1) and (self.gamespace[row][column+1] <= 1):
             #check for platform below
             platform_found = False
             row_temp = row
@@ -224,11 +222,11 @@ class MarioExpert:
                 #check if the current node is a brick
                 if self.gamespace[row_temp][col_temp] >= 10:
                     #A fall link has been found
-                    if self.check_node_exist(row_temp,col_temp):
+                    if self.check_node_exist(row_temp,col_temp) == False:
                         self.gamegraph.add_node(row_temp,col_temp)
                     #add a link
                     self.gamegraph.node_array[row,column].add_edge(row_temp,col_temp,LINK.FALL)
-                    platform_found == True
+                    platform_found = True
                 else:
                     row_temp+=1
         return
@@ -283,8 +281,8 @@ class MarioExpert:
                     self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
         return
 
-    def check_faith_link(row,column,self):
-        return
+    # def check_faith_link(row,column,self):
+    #     return
     
                                                                             
 
@@ -392,7 +390,7 @@ def create_popup(stdscr):
 
 class GameGraph:
     def __init__(self) -> None:
-        self.node_array = np.zeroes(16,20) #generate blank matrix witt 16 rows and 20 cols which is the size of the gamespace
+        self.node_array = np.full((16,20),None, dtype=object) #generate blank matrix witt 16 rows and 20 cols which is the size of the gamespace
 
     def add_node(self,row,col):
         self.node_array[row,col] = Node()
@@ -403,7 +401,7 @@ class Node:
         self.edge_list = deque()
     
     def add_edge(self,row, col, link_type):
-        self.edge_list.append(Edge(self,row,col,link_type))
+        self.edge_list.append(Edge(row,col,link_type))
 
 class Edge:
     def __init__(self,finish_row,finish_col,link_type):
