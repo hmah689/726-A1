@@ -32,6 +32,31 @@ class LINK(Enum):
     JUMP = 2
     FAITH_JUMP = 3
 
+class STATUS(Enum):
+    DONE = 0
+    MOVING = 1
+
+class GameGraph:
+    def __init__(self) -> None:
+        self.node_array = np.full((16,20),None, dtype=object) #generate blank matrix witt 16 rows and 20 cols which is the size of the gamespace
+
+    def add_node(self,row,col):
+        self.node_array[row,col] = Node()
+
+
+class Node:
+    def __init__(self):   
+        self.edge_list = deque()
+    
+    def add_edge(self,row, col, link_type):
+        self.edge_list.append(Edge(row,col,link_type))
+
+class Edge:
+    def __init__(self,finish_row,finish_col,link_type: LINK):
+        self.finish_row = finish_row
+        self.finish_col = finish_col
+        self.link_type = link_type
+
 class MarioController(MarioEnvironment):
     """
     The MarioController class represents a controller for the Mario game environment.
@@ -80,7 +105,7 @@ class MarioController(MarioEnvironment):
         self.valid_actions = valid_actions
         self.release_button = release_button
 
-    def run_action(self, action: int) -> None:
+    def run_action(self, current_row,current_col,edge: Edge) -> STATUS:
         """
         This is a very basic example of how this function could be implemented
 
@@ -88,16 +113,79 @@ class MarioController(MarioEnvironment):
 
         You can change the action type to whatever you want or need just remember the base control of the game is pushing buttons
         """
-
+        if edge.link_type.value == LINK.WALK.value:
+            status = self.walk(current_col,edge)
+        elif edge.link_type.value == LINK.FALL.value:
+            status = self.fall(current_row,current_col,edge),
+        elif edge.link_type.value() == LINK.JUMP.value:
+            status = self.jump(current_row,current_col,edge)
+        #release buttons if at the end of edge
+        if status.value == STATUS.DONE.value:
+            self.no_action()
         # Simply toggles the buttons being on or off for a duration of act_freq
-        self.pyboy.send_input(self.valid_actions[action])
-
+        # self.pyboy.send_input(self.valid_actions[action])
         for _ in range(self.act_freq):
             self.pyboy.tick()
 
-        self.pyboy.send_input(self.release_button[action])
+        return status
+    
+    def send_button(self,buttons):
+        for button in buttons:
+            self.pyboy.send_input(self.valid_actions[button])
 
-
+    def no_action(self):
+        """
+        Used to release all buttons
+        """
+        for button in self.release_button:
+            self.pyboy.send_input(self.release_button(button))
+        return
+    def walk(self,col,edge: Edge) -> STATUS:
+        #Check if on the target
+        if col == edge.finish_col:
+            return STATUS.DONE
+        #Check if to the left of target
+        elif col < edge.finish_col:
+            self.send_button(ACTION.RIGHT.value)
+            return STATUS.MOVING
+        #Check if to the right of the target
+        elif col > edge.finish_col:
+            self.send_button(ACTION.LEFT.value)
+            return STATUS.MOVING
+        
+    def fall(self,row,col,edge: Edge) -> STATUS:
+        #Check if on the target
+        if col == edge.finish_col and row == edge.finish_row:
+            return STATUS.DONE
+        #Check if above the target but still falling
+        elif col == edge.finish_col:
+            self.no_action()
+            return STATUS.MOVING
+        elif col < edge.finish_col:
+            self.send_button(ACTION.RIGHT.value)
+            return STATUS.MOVING
+        #Check if to the right of the target
+        elif col > edge.finish_col:
+            self.send_button(ACTION.LEFT.value)
+            return STATUS.MOVING
+        
+    def jump(self,row,col,edge: Edge) -> STATUS:
+        #Check if on the target
+        if col == edge.finish_col and row == edge.finish_row:
+            return STATUS.DONE
+        #Check if on the same row but to the left
+        elif row == edge.finish_row and col < edge.finish_col:
+            self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value])
+            return STATUS.MOVING
+        #Check if on the same row but to the right
+        elif row == edge.finish_row and col > edge.finish_col:
+            self.send_button([ACTION.BUTT_A.value, ACTION.LEFT.value])
+            return STATUS.MOVING
+        #Check if too low
+        elif row == edge.finish_row:
+            self.send_button([ACTION.BUTT_A.value,ACTION.UP.value])
+            return STATUS.MOVING
+        
 class MarioExpert:
     """
     The MarioExpert class represents an expert agent for playing the Mario game.
@@ -119,12 +207,27 @@ class MarioExpert:
         self.video = None
         self.gamespace = None
         self.gamegraph = GameGraph() #create an empty list of nodes
+        self.mario_col = 0
+        self.mario_row = 0
+        self.status = STATUS.DONE
 
     def choose_action(self):
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
         self.gamespace = self.environment.game_area()
         self.gamegraph = self.generate_graph()
+
+        #get the path based on Marios position
+
+        #execute actions
+        #Always execute whichever edge leads furthers to the bottom right
+        score = 0
+        x = 0
+        for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
+            score = max(score, edge.finish_col + edge.finish_row)
+            x = n
+        return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
+
 
 
         # Implement your code here to choose the best action
@@ -148,7 +251,7 @@ class MarioExpert:
         # #Defult option
         # return ACTION.UP.value
         # return random.randint(0, len(self.environment.valid_actions) - 1)
-        return ACTION.RIGHT.value
+        # return ACTION.RIGHT.value
     
     def generate_graph(self) -> None:
         """
@@ -293,12 +396,14 @@ class MarioExpert:
 
         This is just a very basic example
         """
+        #update the position of mario
+        self.get_mario_pos()
+        #run actions
+        if self.status == STATUS.DONE.value:
+            edge = self.choose_action()
+        else:
+            self.status = self.environment.run_action(self.mario_row,self.mario_col,edge)
 
-        # Choose an action - button press or other...
-        action = self.choose_action()
-
-        # Run the action on the environment
-        self.environment.run_action(action)
 
     def play(self):
         """
@@ -348,8 +453,18 @@ class MarioExpert:
         """
         self.video.release()
 
-    
-
+    def get_mario_pos(self):
+        #updates the row and col that mario is currently located at
+        self.mario_row = 0
+        self.mario_col = 0
+        for i, row in enumerate(self.gamespace):
+        #Check if the node has neighbors
+            for j,grid in enumerate(row):
+                #Check if it is mario. Store the lower rightmost corner of mario
+                if grid == 1:
+                    self.mario_row = max(self.mario_row,i)
+                    self.mario_col = max(self.mario_col,j)
+        return
 
     #new functions
 def init_curses():
@@ -386,25 +501,3 @@ def create_popup(stdscr):
     stdscr.addstr(instructions_y, instructions_x, instructions)
     # Refresh the screen to show the content
     stdscr.refresh()    
-
-
-class GameGraph:
-    def __init__(self) -> None:
-        self.node_array = np.full((16,20),None, dtype=object) #generate blank matrix witt 16 rows and 20 cols which is the size of the gamespace
-
-    def add_node(self,row,col):
-        self.node_array[row,col] = Node()
-
-
-class Node:
-    def __init__(self):   
-        self.edge_list = deque()
-    
-    def add_edge(self,row, col, link_type):
-        self.edge_list.append(Edge(row,col,link_type))
-
-class Edge:
-    def __init__(self,finish_row,finish_col,link_type):
-        self.finish_row = finish_row
-        self.finish_col = finish_col
-        self.link_type = link_type
