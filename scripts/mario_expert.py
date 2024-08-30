@@ -15,6 +15,7 @@ from mario_environment import MarioEnvironment
 from pyboy.utils import WindowEvent
 from enum import Enum, auto
 import curses
+from collections import deque
 
 class ACTION(Enum):
     DOWN = 0
@@ -23,6 +24,12 @@ class ACTION(Enum):
     UP = 3
     BUTT_A = 4
     BUTT_B = 5
+
+class LINK(Enum):
+    WALK = 0
+    FALL = 1
+    JUMP = 2
+    FAITH_JUMP = 3
 
 class MarioController(MarioEnvironment):
     """
@@ -39,7 +46,7 @@ class MarioController(MarioEnvironment):
     def __init__(
         self,
         act_freq: int = 10,
-        emulation_speed: int = 0,
+        emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
         super().__init__(
@@ -110,34 +117,86 @@ class MarioExpert:
 
         self.video = None
         self.gamespace = None
+        self.gamegraph = None
 
     def choose_action(self):
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
-        game_area = self.environment.game_area()
+        self.gamespace = self.environment.game_area()
+        self.gamegraph = self.generate_graph()
+
 
         # Implement your code here to choose the best action
         # time.sleep(0.1)
-        action = self.stdscr.getch()  # Non-blocking read
-        # action = input()  # Non-blocking read
+        # action = self.stdscr.getch()  # Non-blocking read
+        # # action = input()  # Non-blocking read
 
-        if action == 97: #'a'
-            return ACTION.LEFT.value
-        elif action == 100: #'d'
-            return ACTION.RIGHT.value
-        elif action == 115: #'s'
-            return ACTION.DOWN.value
-        elif action == 119: #'w'
-            return ACTION.UP.value
-        elif action == 98: #'b'
-            return ACTION.BUTT_B.value
-        elif action == 110: #'n'
-            return ACTION.BUTT_A.value
+        # if action == 97: #'a'
+        #     return ACTION.LEFT.value
+        # elif action == 100: #'d'
+        #     return ACTION.RIGHT.value
+        # elif action == 115: #'s'
+        #     return ACTION.DOWN.value
+        # elif action == 119: #'w'
+        #     return ACTION.UP.value
+        # elif action == 98: #'b'
+        #     return ACTION.BUTT_B.value
+        # elif action == 110: #'n'
+        #     return ACTION.BUTT_A.value
 
-        #Defult option
-        return ACTION.UP.value
+        # #Defult option
+        # return ACTION.UP.value
         # return random.randint(0, len(self.environment.valid_actions) - 1)
-        return action
+        return ACTION.RIGHT.value
+    
+    def generate_graph(self) -> None:
+        """
+        This method must be called after the gamespace has been generated. It uses the gamespace to generate a traversible linked graph. The transversible links are predefined i.e walk link, jump link, big jump link, fall link, pipe link
+        """
+        for row in self.gamespace:
+            #Check if the node has neighbors
+            for column in row:
+
+                #Check if it is a brick. In the gamespace anything with a value greater than 10 mario can stand on
+                if self.gamespace[row][column] >= 10:
+                    #Check fall links
+                    #Check walk links
+                    #Check jump links
+                    #Check faith jump links
+                    pass
+                else:
+                    pass
+        return
+    
+    def check_fall_link(row,column,node,self):
+        #check for empty space left
+        if (column != 0) and (self.gamespace[row][column-1] == 0):
+            #check for platform below
+            platform_found = False
+            while row < len(self.gamespace) and platform_found == False:
+                #check if the current node is a brick
+                if self.gamespace[row][column] >= 10:
+                    #A fall link has been found
+                    #node.add_link(start_node,finish_node,link_type)
+                    pass
+
+        #check for empty space to right    
+        if (column-1 != len(self.gamespace[row])) and (self.gamespace[row][column+1] == 0):
+            #check for platform below
+            pass
+
+
+        return
+
+    def check_walk_link(row,column,self):
+        return
+    def check_jump_link(row,column,self):
+        return
+    def check_faith_link(row,column,self):
+        return
+    
+                                                                            
+
 
     def step(self):
         """
@@ -200,6 +259,9 @@ class MarioExpert:
         """
         self.video.release()
 
+    
+
+
     #new functions
 def init_curses():
     stdscr = curses.initscr()  # Initialize the screen
@@ -235,3 +297,27 @@ def create_popup(stdscr):
     stdscr.addstr(instructions_y, instructions_x, instructions)
     # Refresh the screen to show the content
     stdscr.refresh()    
+
+    
+class GameGraph:
+    def __init__(self) -> None:
+        self.node_list = deque()
+
+    def add_node(self,row,col):
+        self.node_list.append((Node(row,col)))
+
+
+class Node:
+    def __init__(self,row,col):
+        self.row = row
+        self.col = col        
+        self.edge_list = deque()
+    
+    def add_edge(self,finish,link_type):
+        self.edge_list.append(Edge(self,finish,link_type))
+
+class Edge:
+    def __init__(self,start,finish,link_type):
+        self.start = start
+        self.finish = finish
+        self.link_type = link_type
