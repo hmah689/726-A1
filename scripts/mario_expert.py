@@ -175,8 +175,15 @@ class MarioExpert:
         return
     
     def check_node_valid(self,row,col):
-        """Returns zero if the two spaces above the location are blocks i.e mario can't stand on the node"""
-        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamegraph[row-2][col] == 0):
+        """Returns true if mario can stand on the node"""
+        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamespace[row-2][col] == 0) and (self.gamespace[row][col] >= 10):
+            return True
+        else:
+            return False
+        
+    def check_empty(self,row,col):
+        """Returns true if the area above the node is empty i.e zero"""
+        if (row > 2) and (self.gamespace[row-1][col] == 0) and (self.gamespace[row-2][col] == 0):
             return True
         else:
             return False
@@ -237,7 +244,7 @@ class MarioExpert:
                 #add a node if there isn't already one
                 if self.check_node_exist(row,col_temp) == False:
                     self.gamegraph.add_node(row,col_temp)
-                self.gamegraph.node_array[row,col_temp].add_edge(row,col_temp,LINK.WALK)
+                self.gamegraph.node_array[row,column].add_edge(row,col_temp,LINK.WALK)
         #check for node to the right
         col_temp = column + 1
         if (col_temp < len(self.gamespace[row])) and (self.gamespace[row][col_temp] >= 10):
@@ -248,13 +255,34 @@ class MarioExpert:
                 #add a node if there isn't already one
                 if self.check_node_exist(row,col_temp) == False:
                     self.gamegraph.add_node(row,col_temp)
-                self.gamegraph.node_array[row,col_temp].add_edge(row,col_temp,LINK.WALK)
+                self.gamegraph.node_array[row,column].add_edge(row,col_temp,LINK.WALK)
         return
     
     def check_jump_link(self,row,column):
         """A jump link is for nodes up to 3 blocks seperation vertically and 1 block seperation horizontally"""
+        #check for nodes to the left
+        col_temp = column - 1
+        row_temp = row
+        if (col_temp >= 0) and (row-3 >= 0):
+            for i in range(1,4):
+                if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
+                    #jump link has been found
+                    if (self.check_node_exist(row_temp-i,col_temp) == False):
+                        self.gamegraph.add_node(row_temp-i,col_temp)
+                    self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
         
+        #check for nodes to the right
+        col_temp = column + 1
+        row_temp = row
+        if (col_temp < len(self.gamespace[row])) and (row-3 >= 0):
+            for i in range(1,4):
+                if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
+                    #jump link has been found
+                    if (self.check_node_exist(row_temp-i,col_temp) == False):
+                        self.gamegraph.add_node(row_temp-i,col_temp)
+                    self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
         return
+
     def check_faith_link(row,column,self):
         return
     
