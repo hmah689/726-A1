@@ -197,13 +197,9 @@ class MarioController(MarioEnvironment):
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
-        #Check if enemy near
-        if abs(col-enemy_col) <= 2 and (enemy_col > -1):
-            self.send_button([ACTION.LEFT.value])
-            return STATUS.DONE
         #Check if above the target but still falling
         elif col == edge.finish_col:
-            self.send_button([ACTION.DOWN.value,ACTION.BUTT_B.value])
+            self.send_button([ACTION.DOWN.value,ACTION.RIGHT.value])
             return STATUS.MOVING
         elif col < edge.finish_col:
             self.send_button([ACTION.RIGHT.value])
@@ -232,7 +228,8 @@ class MarioController(MarioEnvironment):
                 self.send_button([ACTION.LEFT.value])
                 return STATUS.MOVING
             #Check if too low
-            elif row > edge.finish_row:
+            # C207       1    Probably used in Mario's jump routine. (0x00 = Not jumping, 0x01 = Ascending, 0x02 = Descending)
+            elif row > edge.finish_row and self._read_m(0xC207) != 0x02:
                 self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value])
                 return STATUS.MOVING
             
@@ -288,8 +285,9 @@ class MarioController(MarioEnvironment):
                 self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
             #Check if too low or on same level
-            elif row >= edge.finish_row:
-                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value,ACTION.RIGHT.value])
+            # C207       1    Probably used in Mario's jump routine. (0x00 = Not jumping, 0x01 = Ascending, 0x02 = Descending)
+            elif row >= edge.finish_row and self._read_m(0xC207) != 0x02:
+                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
             
         #an enemy is within two tiles of mario and mario is already in the air 
@@ -369,8 +367,8 @@ class MarioExpert:
         x = 0
         try:
             for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
-                if (max(score, edge.finish_col + edge.finish_row+ edge.link_type.value*2) > score):
-                    score = max(score, edge.finish_col + edge.finish_row + edge.link_type.value*2)
+                if (max(score, edge.finish_col+ (16 - edge.finish_row)+ edge.link_type.value*2) > score):
+                    score = max(score, edge.finish_col+(16 - edge.finish_row) + edge.link_type.value*2)
                     x = n
             return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
         except:
@@ -429,14 +427,14 @@ class MarioExpert:
     
     def check_node_valid(self,row,col):
         """Returns true if mario can stand on the node"""
-        if (row > 2) and (self.gamespace[row-1][col] <= 1) and (self.gamespace[row-2][col] <= 1) and (self.gamespace[row][col] >= 10):
+        if (row > 2) and (self.gamespace[row-1][col] <= 9) and (self.gamespace[row-2][col] <= 9) and (self.gamespace[row][col] >= 10):
             return True
         else:
             return False
         
     def check_empty(self,row,col):
         """Returns true if the area above the node is empty i.e zero"""
-        if (row > 2) and (self.gamespace[row-1][col] <= 1) and (self.gamespace[row-2][col] <= 1):
+        if (row > 2) and (self.gamespace[row-1][col] <= 9) and (self.gamespace[row-2][col] <= 9):
             return True
         else:
             return False
@@ -450,7 +448,7 @@ class MarioExpert:
     
     def check_fall_link(self,row,column):
         #check for empty space left
-        if (column != 0) and (self.gamespace[row][column-1] <= 1):
+        if (column != 0) and (self.gamespace[row][column-1] <= 9):
             #check for platform below
             platform_found = False
             row_temp = row
@@ -468,7 +466,7 @@ class MarioExpert:
                     row_temp+=1
 
         #check for empty space right
-        if (column < len(self.gamespace[row]) - 1) and (self.gamespace[row][column+1] <= 1):
+        if (column < len(self.gamespace[row]) - 1) and (self.gamespace[row][column+1] <= 9):
             #check for platform below
             platform_found = False
             row_temp = row
