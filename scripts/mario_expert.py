@@ -111,7 +111,7 @@ class MarioController(MarioEnvironment):
         self.valid_actions = valid_actions
         self.release_button = release_button
 
-    def run_action(self, current_row,current_col,edge: Edge):
+    def run_action(self, current_row,current_col,edge: Edge, enemy_row, enemy_col):
         """
         This is a very basic example of how this function could be implemented
 
@@ -125,11 +125,11 @@ class MarioController(MarioEnvironment):
         #if an edge has been passed execute it
         if edge:
             if edge.link_type.value == LINK.WALK.value:
-                status = self.walk(current_col,edge)
+                status = self.walk(current_col,edge,enemy_col)
             elif edge.link_type.value == LINK.FALL.value:
                 status = self.fall(current_row,current_col,edge),
             elif edge.link_type.value == LINK.JUMP.value:
-                status = self.jump(current_row,current_col,edge)
+                status = self.jump(current_row,current_col,edge,enemy_row,enemy_col)
 
         # Simply toggles the buttons being on or off for a duration of act_freq
         # self.pyboy.send_input(self.valid_actions[action])
@@ -151,9 +151,13 @@ class MarioController(MarioEnvironment):
             self.pyboy.send_input(self.release_button[button])
         return
     
-    def walk(self,col,edge: Edge) -> STATUS:
+    def walk(self,col,edge: Edge,enemy_col) -> STATUS:
         #Check if on the target
         if col == edge.finish_col:
+            return STATUS.DONE
+        #If enemy exists that is within 2 cols
+        elif (abs(col-enemy_col) <= 2) and enemy_col > -1:
+            self.no_action()
             return STATUS.DONE
         #Check if to the left of target
         elif col < edge.finish_col:
@@ -185,22 +189,25 @@ class MarioController(MarioEnvironment):
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
         
-        #else if there is no enemy or no enemy within 2 tiles of mario
-        elif enemy_row == None | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2):
-        #Check if on the same  or above row but to the left
+        #else if there is no enemy or no enemy within 1 tiles of mario or mario is on the ground and can jump over, or mario is in the air but still has speed and can jump over
+        # C208       1    Mario's Y speed. (0x00 (a lot of speed) to 0x19 (no speed, top of jump)) (unintentionally reaches 0x1a and 0xff)
+        # C20A       1    Mario is on the ground flag (0x01 = On the ground, 0x00 = In the air)
+        # | (self._read_m(0xC208) <=0x15)
+        elif (enemy_row == -1) | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
+            #Check if on the same  or above row but to the left
             if row <= edge.finish_row and col < edge.finish_col:
-                self.send_button([ACTION.BUTT_B.value,ACTION.RIGHT.value])
+                self.send_button([ACTION.RIGHT.value])
                 return STATUS.MOVING
             #Check if on the same or above row but to the right
             elif row <= edge.finish_row and col > edge.finish_col:
-                self.send_button([ACTION.BUTT_B.value, ACTION.LEFT.value])
+                self.send_button([ACTION.LEFT.value])
                 return STATUS.MOVING
             #Check if too low
             elif row > edge.finish_row:
                 self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
             
-        #an enemy is within two tiles of mario  
+        #an enemy is within two tiles of mario and mario is already in the air 
         else:
             #if on the same level or below AVOID
             if (row >= enemy_row):
@@ -227,7 +234,7 @@ class MarioController(MarioEnvironment):
                     #STOMP
                     self.send_button([ACTION.DOWN.value])
                 
-                
+
 class MarioExpert:
     """
     The MarioExpert class represents an expert agent for playing the Mario game.
@@ -528,7 +535,7 @@ class MarioExpert:
         return
 
     def get_enemy_pos(self):
-        #updates the row and col that an enemy is based at. Is None if no enemy
+        #updates the row and col that an enemy is based at. Is -1 if no enemy
         self.enemy_row = 0
         self.enemy_col = 0
         for i, row in enumerate(self.gamespace):
@@ -536,13 +543,13 @@ class MarioExpert:
             for j,grid in enumerate(row):
                 #Check if it is mario. Store the lower rightmost corner of enemy
                 if grid >= 15:
-                    self.mario_row = max(self.mario_row,i)
-                    self.mario_col = max(self.mario_col,j)
+                    self.enemy_row = max(self.enemy_row,i)
+                    self.enemy_col = max(self.enemy_col,j)
         
         #make sure an enemy was found
         if self.enemy_col == 0 and self.enemy_row == 0:
-            self.enemy_row = None
-            self.enemy_col = None
+            self.enemy_row = -1
+            self.enemy_col = -1
         return
 
 #     #new functions
