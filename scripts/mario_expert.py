@@ -199,7 +199,7 @@ class MarioController(MarioEnvironment):
             return STATUS.DONE
         #Check if above the target but still falling
         elif col == edge.finish_col:
-            self.send_button([ACTION.DOWN.value,ACTION.RIGHT.value])
+            self.send_button([ACTION.DOWN.value])
             return STATUS.MOVING
         elif col < edge.finish_col:
             self.send_button([ACTION.RIGHT.value])
@@ -230,7 +230,7 @@ class MarioController(MarioEnvironment):
             #Check if too low
             # C207       1    Probably used in Mario's jump routine. (0x00 = Not jumping, 0x01 = Ascending, 0x02 = Descending)
             elif row > edge.finish_row and self._read_m(0xC207) != 0x02:
-                self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value,ACTION.BUTT_B.value])
+                self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value])
                 return STATUS.MOVING
             
         #an enemy is within two tiles of mario and mario is already in the air 
@@ -287,7 +287,7 @@ class MarioController(MarioEnvironment):
             #Check if too low or on same level
             # C207       1    Probably used in Mario's jump routine. (0x00 = Not jumping, 0x01 = Ascending, 0x02 = Descending)
             elif row >= edge.finish_row and self._read_m(0xC207) != 0x02:
-                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
+                self.send_button([ACTION.RIGHT.value,ACTION.BUTT_A.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
             
         #an enemy is within two tiles of mario and mario is already in the air 
@@ -368,7 +368,7 @@ class MarioExpert:
         try:
             for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
                 if (max(score, edge.finish_col + edge.link_type.value*2) > score):
-                    score = max(score, edge.finish_col+ + edge.link_type.value*2)
+                    score = max(score, edge.finish_col + edge.link_type.value*2)
                     x = n
             return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
         except:
