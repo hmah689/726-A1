@@ -234,8 +234,8 @@ class MarioController(MarioEnvironment):
         else:
             #if on the same level or below AVOID
             if (row >= enemy_row):
-                #check if mario is to the left of enemy
-                if (col < enemy_col):
+                #check if mario is to the left or under of enemy
+                if (col <= enemy_col):
                     #Avoid left
                     self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
                     return STATUS.MOVING
