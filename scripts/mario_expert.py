@@ -537,7 +537,7 @@ class MarioExpert:
         """A faith jump link is for nodes up to 4 blocks seperation horizontally and 2 blocks seperation horizontally"""
         #check for nodes to the left
         scan_height = 2
-        scan_width = 4
+        scan_width = 6
         for i in range(-scan_height-1,scan_height+1):
             for j in range(-scan_width-1,scan_width+1):
                 try:
