@@ -30,7 +30,7 @@ class LINK(Enum):
     WALK = 0
     FALL = 1
     JUMP = 2
-    FAITH_JUMP = -1.5
+    FAITH_JUMP = -1
 
 class STATUS(Enum):
     DONE = 0
@@ -77,7 +77,7 @@ class MarioController(MarioEnvironment):
 
     def __init__(
         self,
-        act_freq: int = 10,
+        act_freq: int = 2,
         emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
@@ -236,7 +236,7 @@ class MarioController(MarioEnvironment):
         #an enemy is within two tiles of mario and mario is already in the air 
         else:
             #if on the same level or below AVOID
-            if (row >= enemy_row):
+            if (row > enemy_row):
                 #check if mario is to the left or under of enemy
                 if (col <= enemy_col):
                     #Avoid left
@@ -297,13 +297,13 @@ class MarioController(MarioEnvironment):
                 #check if mario is to the left or under of enemy
                 if (col <= enemy_col):
                     #Avoid left
-                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
                     return STATUS.MOVING
 
                 #must be to the right of enemy
                 else:
                     #Avoid right
-                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value])
+                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
                     return STATUS.MOVING
 
             #higher than enemy then ATTACK
