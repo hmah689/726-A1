@@ -199,6 +199,7 @@ class MarioController(MarioEnvironment):
             return STATUS.DONE
         #Check if enemy near
         if abs(col-enemy_col) <= 2 and (enemy_col > -1):
+            self.send_button([ACTION.LEFT.value])
             return STATUS.DONE
         #Check if above the target but still falling
         elif col == edge.finish_col:
@@ -232,7 +233,7 @@ class MarioController(MarioEnvironment):
                 return STATUS.MOVING
             #Check if too low
             elif row > edge.finish_row:
-                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value,])
+                self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value])
                 return STATUS.MOVING
             
         #an enemy is within two tiles of mario and mario is already in the air 
