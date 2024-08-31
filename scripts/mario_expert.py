@@ -128,7 +128,7 @@ class MarioController(MarioEnvironment):
             if edge.link_type.value == LINK.WALK.value:
                 status = self.walk(current_col,edge,enemy_col)
             elif edge.link_type.value == LINK.FALL.value:
-                status = self.fall(current_row,current_col,edge),
+                status = self.fall(current_row,current_col,edge,enemy_col),
             elif edge.link_type.value == LINK.JUMP.value:
                 status = self.jump(current_row,current_col,edge,enemy_row,enemy_col)
             elif edge.link_type.value == LINK.FAITH_JUMP.value:
@@ -193,13 +193,16 @@ class MarioController(MarioEnvironment):
             self.send_button([ACTION.LEFT.value])
             return STATUS.MOVING
         
-    def fall(self,row,col,edge: Edge) -> STATUS:
+    def fall(self,row,col,edge: Edge,enemy_col) -> STATUS:
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
+        #Check if enemy near
+        if abs(col-enemy_col) <= 2 and (enemy_col > -1):
+            return STATUS.DONE
         #Check if above the target but still falling
         elif col == edge.finish_col:
-            self.release_all()
+            self.send_button([ACTION.DOWN.value,ACTION.BUTT_B.value])
             return STATUS.MOVING
         elif col < edge.finish_col:
             self.send_button([ACTION.RIGHT.value])
@@ -229,7 +232,7 @@ class MarioController(MarioEnvironment):
                 return STATUS.MOVING
             #Check if too low
             elif row > edge.finish_row:
-                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
+                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value,])
                 return STATUS.MOVING
             
         #an enemy is within two tiles of mario and mario is already in the air 
