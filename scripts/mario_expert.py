@@ -276,15 +276,15 @@ class MarioController(MarioEnvironment):
         # | (self._read_m(0xC208) <=0x15)
         elif (enemy_row == -1) | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
             #Check if on the same  or above row but to the left
-            if row <= edge.finish_row and col < edge.finish_col:
+            if row < edge.finish_row and col < edge.finish_col:
                 self.send_button([ACTION.RIGHT.value])
                 return STATUS.MOVING
             #Check if on the same or above row but to the right
             elif row <= edge.finish_row and col > edge.finish_col:
                 self.send_button([ACTION.LEFT.value])
                 return STATUS.MOVING
-            #Check if too low
-            elif row > edge.finish_row:
+            #Check if too low or on same level
+            elif row >= edge.finish_row:
                 self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
             
