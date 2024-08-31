@@ -180,23 +180,54 @@ class MarioController(MarioEnvironment):
             self.send_button([ACTION.LEFT.value])
             return STATUS.MOVING
         
-    def jump(self,row,col,edge: Edge) -> STATUS:
+    def jump(self,row,col,edge: Edge,enemy_row,enemy_col) -> STATUS:
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
-        #Check if on the same  or above row but to the left
-        elif row <= edge.finish_row and col < edge.finish_col:
-            self.send_button([ACTION.BUTT_B.value,ACTION.RIGHT.value])
-            return STATUS.MOVING
-        #Check if on the same or above row but to the right
-        elif row <= edge.finish_row and col > edge.finish_col:
-            self.send_button([ACTION.BUTT_B.value, ACTION.LEFT.value])
-            return STATUS.MOVING
-        #Check if too low
-        elif row > edge.finish_row:
-            self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
-            return STATUS.MOVING
         
+        #else if there is no enemy or no enemy within 2 tiles of mario
+        elif enemy_row == None | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2):
+        #Check if on the same  or above row but to the left
+            if row <= edge.finish_row and col < edge.finish_col:
+                self.send_button([ACTION.BUTT_B.value,ACTION.RIGHT.value])
+                return STATUS.MOVING
+            #Check if on the same or above row but to the right
+            elif row <= edge.finish_row and col > edge.finish_col:
+                self.send_button([ACTION.BUTT_B.value, ACTION.LEFT.value])
+                return STATUS.MOVING
+            #Check if too low
+            elif row > edge.finish_row:
+                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
+                return STATUS.MOVING
+            
+        #an enemy is within two tiles of mario  
+        else:
+            #if on the same level or below AVOID
+            if (row >= enemy_row):
+                #check if mario is to the left of enemy
+                if (col < enemy_col):
+                    #Avoid left
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
+                #must be to the right of enemy
+                else:
+                    #Avoid right
+                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value])
+
+            #higher than enemy then ATTACK
+            elif (row < enemy_row):
+                #Check if to the left
+                if (col < enemy_col):
+                    #steer above
+                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value])
+                #check if to the right
+                elif(col > enemy_col):
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
+                #must be above
+                else:
+                    #STOMP
+                    self.send_button([ACTION.DOWN.value])
+                
+                
 class MarioExpert:
     """
     The MarioExpert class represents an expert agent for playing the Mario game.
@@ -229,6 +260,8 @@ class MarioExpert:
         self.gamespace = self.environment.game_area()
         self.generate_graph()
         self.get_mario_pos()
+        self.get_enemy_pos()
+
 
 
         #get the path based on Marios position
@@ -428,11 +461,11 @@ class MarioExpert:
         edge = self.choose_action()
         #if a new valid new edge exists
         if (edge != None):
-            self.environment.run_action(self.mario_row,self.mario_col,edge)
+            self.environment.run_action(self.mario_row,self.mario_col,edge,self.enemy_row,self.enemy_col)
             self.edge = edge
         #otherwise a new edge does not exist, perhaps because mario is jumping
         else:
-            self.environment.run_action(self.mario_row,self.mario_col,self.edge)
+            self.environment.run_action(self.mario_row,self.mario_col,self.edge,self.enemy_row,self.enemy_col)
 
         return
 
@@ -492,6 +525,24 @@ class MarioExpert:
 
         #remember mario must be standing on a brick, 
         self.mario_row += 1
+        return
+
+    def get_enemy_pos(self):
+        #updates the row and col that an enemy is based at. Is None if no enemy
+        self.enemy_row = 0
+        self.enemy_col = 0
+        for i, row in enumerate(self.gamespace):
+        #Check if the node has neighbors
+            for j,grid in enumerate(row):
+                #Check if it is mario. Store the lower rightmost corner of enemy
+                if grid >= 15:
+                    self.mario_row = max(self.mario_row,i)
+                    self.mario_col = max(self.mario_col,j)
+        
+        #make sure an enemy was found
+        if self.enemy_col == 0 and self.enemy_row == 0:
+            self.enemy_row = None
+            self.enemy_col = None
         return
 
 #     #new functions
