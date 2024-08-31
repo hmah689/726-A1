@@ -30,7 +30,7 @@ class LINK(Enum):
     WALK = 0
     FALL = 1
     JUMP = 2
-    FAITH_JUMP = 3
+    FAITH_JUMP = -2
 
 class STATUS(Enum):
     DONE = 0
@@ -533,36 +533,25 @@ class MarioExpert:
                     self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
         return
 
-    def check_faith_link(row,column,self):
+    def check_faith_link(self,row,column):
         """A faith jump link is for nodes up to 4 blocks seperation horizontally and 2 blocks seperation horizontally"""
         #check for nodes to the left
         scan_height = 2
         scan_width = 4
-        for j in range(1,scan_width+1):
-            col_temp = column - j
-            row_temp = row
-            if (col_temp >= 0) and (row-scan_height >= 0):
-                for i in range(1,scan_height+1):
-                    if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
-                        #jump link has been found
-                        if (self.check_node_exist(row_temp-i,col_temp) == False):
-                            self.gamegraph.add_node(row_temp-i,col_temp)
-                        self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.FAITH_JUMP)
-            
-        #check for nodes to the right
-        for j in range(1,scan_width+1):
-            col_temp = column + j
-            row_temp = row
-            if (col_temp < len(self.gamespace[row])) and (row-scan_height >= 0):
-                for i in range(1,scan_height+1):
-                    if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
-                        #jump link has been found
-                        if (self.check_node_exist(row_temp-i,col_temp) == False):
-                            self.gamegraph.add_node(row_temp-i,col_temp)
-                        self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
+        for i in range(-scan_height-1,scan_height+1):
+            for j in range(-scan_width-1,scan_width+1):
+                try:
+                    if (self.check_empty(row+i,column+j) == True) and (self.check_node_valid(row+i,column+j)):
+                        #faith link has been found
+                        if (self.check_node_exist(row+i,column+j)) == False:
+                            #make a node at destination
+                            self.gamegraph.add_node(row+i,column+j)
+                        self.gamegraph.node_array[row,column].add_edge(row+i,column+j,LINK.FAITH_JUMP)
+                except:
+                    # this exist for out of bound exceptions
+                    pass
         return
-    
-                                                                            
+                                 
 
 
     def step(self):
