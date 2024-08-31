@@ -300,8 +300,8 @@ class MarioExpert:
         x = 0
         try:
             for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
-                if (max(score, edge.finish_col + edge.finish_row+ edge.link_type.value) > score):
-                    score = max(score, edge.finish_col + edge.finish_row + edge.link_type.value)
+                if (max(score, edge.finish_col + edge.finish_row+ edge.link_type.value*2) > score):
+                    score = max(score, edge.finish_col + edge.finish_row + edge.link_type.value*2)
                     x = n
             return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
         except:
@@ -443,12 +443,13 @@ class MarioExpert:
         return
     
     def check_jump_link(self,row,column):
-        """A jump link is for nodes up to 3 blocks seperation vertically and 1 block seperation horizontally"""
+        """A jump link is for nodes up to 4 blocks seperation vertically and 1 block seperation horizontally"""
         #check for nodes to the left
+        scan_height = 4
         col_temp = column - 1
         row_temp = row
-        if (col_temp >= 0) and (row-3 >= 0):
-            for i in range(1,4):
+        if (col_temp >= 0) and (row-scan_height >= 0):
+            for i in range(1,scan_height+1):
                 if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
                     #jump link has been found
                     if (self.check_node_exist(row_temp-i,col_temp) == False):
@@ -458,8 +459,8 @@ class MarioExpert:
         #check for nodes to the right
         col_temp = column + 1
         row_temp = row
-        if (col_temp < len(self.gamespace[row])) and (row-3 >= 0):
-            for i in range(1,4):
+        if (col_temp < len(self.gamespace[row])) and (row-scan_height >= 0):
+            for i in range(1,scan_height+1):
                 if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
                     #jump link has been found
                     if (self.check_node_exist(row_temp-i,col_temp) == False):
