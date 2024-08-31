@@ -30,7 +30,7 @@ class LINK(Enum):
     WALK = 0
     FALL = 1
     JUMP = 2
-    FAITH_JUMP = -1
+    FAITH_JUMP = -1.5
 
 class STATUS(Enum):
     DONE = 0
@@ -77,7 +77,7 @@ class MarioController(MarioEnvironment):
 
     def __init__(
         self,
-        act_freq: int = 2,
+        act_freq: int = 10,
         emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
@@ -121,6 +121,8 @@ class MarioController(MarioEnvironment):
         """
         #release all buttons which may be held down from previous action
         self.release_all()
+ 
+
         [enemy_row, enemy_col] = self.get_nearest_enemy(current_row,current_col,enemy_list)
 
         #if an edge has been passed execute it
@@ -139,6 +141,8 @@ class MarioController(MarioEnvironment):
 
         # Simply toggles the buttons being on or off for a duration of act_freq
         # self.pyboy.send_input(self.valid_actions[action])
+
+        #tick for the remainder
         for _ in range(self.act_freq):
             self.pyboy.tick()
 
@@ -212,6 +216,7 @@ class MarioController(MarioEnvironment):
     def jump(self,row,col,edge: Edge,enemy_row,enemy_col) -> STATUS:
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
+            self.release_all()
             return STATUS.DONE
         
         #else if there is no enemy or no enemy within 1 tiles of mario or mario is on the ground and can jump over, or mario is in the air but still has speed and can jump over
@@ -283,8 +288,9 @@ class MarioController(MarioEnvironment):
             elif row <= edge.finish_row and col > edge.finish_col:
                 self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
                 return STATUS.MOVING
-            #Check if too low or on same level
-            elif row >= edge.finish_row:
+            #Check if too low or on same level. Only press if not descending
+            # C207       1    Probably used in Mario's jump routine. (0x00 = Not jumping, 0x01 = Ascending, 0x02 = Descending
+            elif row >= edge.finish_row and self._read_m(0xC207) != 0x02:
                 self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value,ACTION.RIGHT.value])
                 return STATUS.MOVING
             
@@ -365,8 +371,8 @@ class MarioExpert:
         x = 0
         try:
             for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
-                if (max(score, edge.finish_col + edge.finish_row+ edge.link_type.value*2) > score):
-                    score = max(score, edge.finish_col + edge.finish_row + edge.link_type.value*2)
+                if (max(score, edge.finish_col + (16 - edge.finish_row) + edge.link_type.value*2) > score):
+                    score = max(score, edge.finish_col + (16 - edge.finish_row) + edge.link_type.value*2)
                     x = n
             return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
         except:
@@ -537,7 +543,7 @@ class MarioExpert:
         """A faith jump link is for nodes up to 4 blocks seperation horizontally and 2 blocks seperation horizontally"""
         #check for nodes to the left
         scan_height = 2
-        scan_width = 6
+        scan_width = 4
         for i in range(-scan_height-1,scan_height+1):
             for j in range(-scan_width-1,scan_width+1):
                 try:
