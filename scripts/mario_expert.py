@@ -131,6 +131,8 @@ class MarioController(MarioEnvironment):
                 status = self.fall(current_row,current_col,edge),
             elif edge.link_type.value == LINK.JUMP.value:
                 status = self.jump(current_row,current_col,edge,enemy_row,enemy_col)
+            elif edge.link_type.value == LINK.FAITH_JUMP.value:
+                status = self.faith(current_row,current_col,edge,enemy_row,enemy_col)
         #An edge has not been passed, go right by default
         else:
             self.pyboy.send_button(self.valid_actions[ACTION.RIGHT.value])
@@ -208,6 +210,62 @@ class MarioController(MarioEnvironment):
             return STATUS.MOVING
         
     def jump(self,row,col,edge: Edge,enemy_row,enemy_col) -> STATUS:
+        #Check if on the target
+        if col == edge.finish_col and row == edge.finish_row:
+            return STATUS.DONE
+        
+        #else if there is no enemy or no enemy within 1 tiles of mario or mario is on the ground and can jump over, or mario is in the air but still has speed and can jump over
+        # C208       1    Mario's Y speed. (0x00 (a lot of speed) to 0x19 (no speed, top of jump)) (unintentionally reaches 0x1a and 0xff)
+        # C20A       1    Mario is on the ground flag (0x01 = On the ground, 0x00 = In the air)
+        # | (self._read_m(0xC208) <=0x15)
+        elif (enemy_row == -1) | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
+            #Check if on the same  or above row but to the left
+            if row <= edge.finish_row and col < edge.finish_col:
+                self.send_button([ACTION.RIGHT.value])
+                return STATUS.MOVING
+            #Check if on the same or above row but to the right
+            elif row <= edge.finish_row and col > edge.finish_col:
+                self.send_button([ACTION.LEFT.value])
+                return STATUS.MOVING
+            #Check if too low
+            elif row > edge.finish_row:
+                self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
+                return STATUS.MOVING
+            
+        #an enemy is within two tiles of mario and mario is already in the air 
+        else:
+            #if on the same level or below AVOID
+            if (row >= enemy_row):
+                #check if mario is to the left or under of enemy
+                if (col <= enemy_col):
+                    #Avoid left
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
+                    return STATUS.MOVING
+
+                #must be to the right of enemy
+                else:
+                    #Avoid right
+                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value])
+                    return STATUS.MOVING
+
+            #higher than enemy then ATTACK
+            elif (row < enemy_row):
+                #Check if to the left
+                if (col < enemy_col):
+                    #steer above
+                    self.send_button([ACTION.RIGHT.value])
+                    return STATUS.MOVING
+                #check if to the right
+                elif(col > enemy_col) and (abs(col-enemy_col) < 1):
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
+                    return STATUS.MOVING
+                #must be above
+                else:
+                    #STOMP
+                    self.send_button([ACTION.DOWN.value,ACTION.BUTT_B.value])
+                    return STATUS.MOVING
+                
+    def faith(self,row,col,edge: Edge,enemy_row,enemy_col) -> STATUS:
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
@@ -362,7 +420,7 @@ class MarioExpert:
                         self.check_fall_link(i,j)
                         self.check_walk_link(i,j)
                         self.check_jump_link(i,j)
-                        #Check faith jump links
+                        self.check_faith_link(i,j)
         return
     
     def check_node_valid(self,row,col):
@@ -475,8 +533,34 @@ class MarioExpert:
                     self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
         return
 
-    # def check_faith_link(row,column,self):
-    #     return
+    def check_faith_link(row,column,self):
+        """A faith jump link is for nodes up to 4 blocks seperation horizontally and 2 blocks seperation horizontally"""
+        #check for nodes to the left
+        scan_height = 2
+        scan_width = 4
+        for j in range(1,scan_width+1):
+            col_temp = column - j
+            row_temp = row
+            if (col_temp >= 0) and (row-scan_height >= 0):
+                for i in range(1,scan_height+1):
+                    if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
+                        #jump link has been found
+                        if (self.check_node_exist(row_temp-i,col_temp) == False):
+                            self.gamegraph.add_node(row_temp-i,col_temp)
+                        self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.FAITH_JUMP)
+            
+        #check for nodes to the right
+        for j in range(1,scan_width+1):
+            col_temp = column + j
+            row_temp = row
+            if (col_temp < len(self.gamespace[row])) and (row-scan_height >= 0):
+                for i in range(1,scan_height+1):
+                    if (self.check_empty(row_temp-i,column) == True) and (self.check_node_valid(row_temp-i,col_temp)):
+                        #jump link has been found
+                        if (self.check_node_exist(row_temp-i,col_temp) == False):
+                            self.gamegraph.add_node(row_temp-i,col_temp)
+                        self.gamegraph.node_array[row,column].add_edge(row_temp-i,col_temp,LINK.JUMP)
+        return
     
                                                                             
 
