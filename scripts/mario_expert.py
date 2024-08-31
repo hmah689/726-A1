@@ -77,7 +77,7 @@ class MarioController(MarioEnvironment):
 
     def __init__(
         self,
-        act_freq: int = 1,
+        act_freq: int = 10,
         emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
@@ -120,7 +120,7 @@ class MarioController(MarioEnvironment):
         You can change the action type to whatever you want or need just remember the base control of the game is pushing buttons
         """
         #release all buttons which may be held down from previous action
-        self.no_action()
+        self.release_all()
         [enemy_row, enemy_col] = self.get_nearest_enemy(current_row,current_col,enemy_list)
 
         #if an edge has been passed execute it
@@ -131,6 +131,9 @@ class MarioController(MarioEnvironment):
                 status = self.fall(current_row,current_col,edge),
             elif edge.link_type.value == LINK.JUMP.value:
                 status = self.jump(current_row,current_col,edge,enemy_row,enemy_col)
+        #An edge has not been passed, go right by default
+        else:
+            self.pyboy.send_button(self.valid_actions[ACTION.RIGHT.value])
 
         # Simply toggles the buttons being on or off for a duration of act_freq
         # self.pyboy.send_input(self.valid_actions[action])
@@ -156,7 +159,7 @@ class MarioController(MarioEnvironment):
             self.pyboy.send_input(self.valid_actions[button])
         return
     
-    def no_action(self):
+    def release_all(self):
         """
         Used to release all buttons
         """
@@ -170,7 +173,7 @@ class MarioController(MarioEnvironment):
             return STATUS.DONE
         #If enemy exists that is within 2 cols
         elif (abs(col-enemy_col) <= 2) and enemy_col > -1:
-            self.no_action()
+            self.release_all()
             return STATUS.DONE
         #Check if to the left of target
         elif col < edge.finish_col:
@@ -187,7 +190,7 @@ class MarioController(MarioEnvironment):
             return STATUS.DONE
         #Check if above the target but still falling
         elif col == edge.finish_col:
-            self.no_action()
+            self.release_all()
             return STATUS.MOVING
         elif col < edge.finish_col:
             self.send_button([ACTION.RIGHT.value])
@@ -244,13 +247,13 @@ class MarioController(MarioEnvironment):
                     self.send_button([ACTION.RIGHT.value])
                     return STATUS.MOVING
                 #check if to the right
-                elif(col > enemy_col):
+                elif(col > enemy_col) and (abs(col-enemy_col) < 1):
                     self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value])
                     return STATUS.MOVING
                 #must be above
                 else:
                     #STOMP
-                    self.send_button([ACTION.DOWN.value])
+                    self.send_button([ACTION.DOWN.value,ACTION.BUTT_B.value])
                     return STATUS.MOVING
                 
 
