@@ -43,6 +43,11 @@ class GameGraph:
     def add_node(self,row,col):
         self.node_array[row,col] = Node()
 
+    def clear(self):
+        for i,row in enumerate(self.node_array):
+            for j,col in enumerate(row):
+                #delete:
+                self.node_array[i,j] = None
 
 class Node:
     def __init__(self):   
@@ -50,6 +55,7 @@ class Node:
     
     def add_edge(self,row, col, link_type):
         self.edge_list.append(Edge(row,col,link_type))
+
 
 class Edge:
     def __init__(self,finish_row,finish_col,link_type: LINK):
@@ -105,7 +111,7 @@ class MarioController(MarioEnvironment):
         self.valid_actions = valid_actions
         self.release_button = release_button
 
-    def run_action(self, current_row,current_col,edge: Edge) -> STATUS:
+    def run_action(self, current_row,current_col,edge: Edge):
         """
         This is a very basic example of how this function could be implemented
 
@@ -113,44 +119,49 @@ class MarioController(MarioEnvironment):
 
         You can change the action type to whatever you want or need just remember the base control of the game is pushing buttons
         """
-        if edge.link_type.value == LINK.WALK.value:
-            status = self.walk(current_col,edge)
-        elif edge.link_type.value == LINK.FALL.value:
-            status = self.fall(current_row,current_col,edge),
-        elif edge.link_type.value() == LINK.JUMP.value:
-            status = self.jump(current_row,current_col,edge)
-        #release buttons if at the end of edge
-        if status.value == STATUS.DONE.value:
-            self.no_action()
+        #release all buttons which may be held down from previous action
+        self.no_action()
+
+        #if an edge has been passed execute it
+        if edge:
+            if edge.link_type.value == LINK.WALK.value:
+                status = self.walk(current_col,edge)
+            elif edge.link_type.value == LINK.FALL.value:
+                status = self.fall(current_row,current_col,edge),
+            elif edge.link_type.value == LINK.JUMP.value:
+                status = self.jump(current_row,current_col,edge)
+
         # Simply toggles the buttons being on or off for a duration of act_freq
         # self.pyboy.send_input(self.valid_actions[action])
         for _ in range(self.act_freq):
             self.pyboy.tick()
 
-        return status
+        return
     
-    def send_button(self,buttons):
+    def send_button(self,buttons: list):
         for button in buttons:
             self.pyboy.send_input(self.valid_actions[button])
-
+        return
+    
     def no_action(self):
         """
         Used to release all buttons
         """
-        for button in self.release_button:
-            self.pyboy.send_input(self.release_button(button))
+        for button in range(len(self.release_button)):
+            self.pyboy.send_input(self.release_button[button])
         return
+    
     def walk(self,col,edge: Edge) -> STATUS:
         #Check if on the target
         if col == edge.finish_col:
             return STATUS.DONE
         #Check if to the left of target
         elif col < edge.finish_col:
-            self.send_button(ACTION.RIGHT.value)
+            self.send_button([ACTION.RIGHT.value])
             return STATUS.MOVING
         #Check if to the right of the target
         elif col > edge.finish_col:
-            self.send_button(ACTION.LEFT.value)
+            self.send_button([ACTION.LEFT.value])
             return STATUS.MOVING
         
     def fall(self,row,col,edge: Edge) -> STATUS:
@@ -162,28 +173,28 @@ class MarioController(MarioEnvironment):
             self.no_action()
             return STATUS.MOVING
         elif col < edge.finish_col:
-            self.send_button(ACTION.RIGHT.value)
+            self.send_button([ACTION.RIGHT.value])
             return STATUS.MOVING
         #Check if to the right of the target
         elif col > edge.finish_col:
-            self.send_button(ACTION.LEFT.value)
+            self.send_button([ACTION.LEFT.value])
             return STATUS.MOVING
         
     def jump(self,row,col,edge: Edge) -> STATUS:
         #Check if on the target
         if col == edge.finish_col and row == edge.finish_row:
             return STATUS.DONE
-        #Check if on the same row but to the left
-        elif row == edge.finish_row and col < edge.finish_col:
-            self.send_button([ACTION.BUTT_A.value,ACTION.RIGHT.value])
+        #Check if on the same  or above row but to the left
+        elif row <= edge.finish_row and col < edge.finish_col:
+            self.send_button([ACTION.BUTT_B.value,ACTION.RIGHT.value])
             return STATUS.MOVING
-        #Check if on the same row but to the right
-        elif row == edge.finish_row and col > edge.finish_col:
-            self.send_button([ACTION.BUTT_A.value, ACTION.LEFT.value])
+        #Check if on the same or above row but to the right
+        elif row <= edge.finish_row and col > edge.finish_col:
+            self.send_button([ACTION.BUTT_B.value, ACTION.LEFT.value])
             return STATUS.MOVING
         #Check if too low
-        elif row == edge.finish_row:
-            self.send_button([ACTION.BUTT_A.value,ACTION.UP.value])
+        elif row > edge.finish_row:
+            self.send_button([ACTION.BUTT_A.value,ACTION.BUTT_B.value])
             return STATUS.MOVING
         
 class MarioExpert:
@@ -210,8 +221,9 @@ class MarioExpert:
         self.mario_col = 0
         self.mario_row = 0
         self.status = STATUS.DONE
+        self.edge = None
 
-    def choose_action(self) -> Edge:
+    def choose_action(self):
         state = self.environment.game_state()
         frame = self.environment.grab_frame()
         self.gamespace = self.environment.game_area()
@@ -225,10 +237,14 @@ class MarioExpert:
         #Always execute whichever edge leads furthers to the bottom right
         score = 0
         x = 0
-        for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
-            score = max(score, edge.finish_col + edge.finish_row)
-            x = n
-        return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
+        try:
+            for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
+                if (max(score, edge.finish_col + edge.finish_row+ edge.link_type.value) > score):
+                    score = max(score, edge.finish_col + edge.finish_row + edge.link_type.value)
+                    x = n
+            return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
+        except:
+            return 
 
 
 
@@ -259,6 +275,10 @@ class MarioExpert:
         """
         This method must be called after the gamespace has been generated. It uses the gamespace to generate a traversible linked graph. The transversible links are predefined i.e walk link, jump link, big jump link, fall link, pipe link
         """
+   
+        self.gamegraph.clear()
+
+
         for i, row in enumerate(self.gamespace):
             #Check if the node has neighbors
             for j,grid in enumerate(row):
@@ -398,12 +418,21 @@ class MarioExpert:
 
         This is just a very basic example
         """
-        #run actions
-        if self.status.value == STATUS.DONE.value:
-            edge = self.choose_action()
+        # run actions
+        # if self.status.value == STATUS.DONE.value:
+        #     edge = self.choose_action()
+        # else:
+        #     self.status = self.environment.run_action(self.mario_row,self.mario_col,edge)
+        #     self.get_mario_pos()
+
+        edge = self.choose_action()
+        #if a new valid new edge exists
+        if (edge != None):
+            self.environment.run_action(self.mario_row,self.mario_col,edge)
+            self.edge = edge
+        #otherwise a new edge does not exist, perhaps because mario is jumping
         else:
-            self.status = self.environment.run_action(self.mario_row,self.mario_col,edge)
-            self.get_mario_pos()
+            self.environment.run_action(self.mario_row,self.mario_col,self.edge)
 
         return
 
