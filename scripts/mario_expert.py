@@ -173,8 +173,15 @@ class MarioController(MarioEnvironment):
             return STATUS.DONE
         #If enemy exists that is within 2 cols
         elif (abs(col-enemy_col) <= 2) and enemy_col > -1:
-            self.release_all()
-            return STATUS.DONE
+            #check if the enemy is above or below
+            if (col == enemy_col):
+                #dodge backwards
+                self.send_button([ACTION.LEFT.value])
+                return STATUS.MOVING
+            #if the enemy isn't above sit still so we can jump over and fight it
+            else:
+                self.release_all()
+                return STATUS.DONE
         #Check if to the left of target
         elif col < edge.finish_col:
             self.send_button([ACTION.RIGHT.value])
@@ -560,7 +567,7 @@ class MarioExpert:
         #returns a list of coordinates for any enemys within 2 tiles of mario. Is -1 if no enemy
         enemy_list = deque()
 
-        for i in range(-2,4):
+        for i in range(-4,4):
             for j in range(-3,4):
                 try:
                     if self.gamespace[self.mario_row+ i][self.mario_col + j] >= 15:
