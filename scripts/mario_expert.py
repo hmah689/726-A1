@@ -77,7 +77,7 @@ class MarioController(MarioEnvironment):
 
     def __init__(
         self,
-        act_freq: int = 10,
+        act_freq: int = 2,
         emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
@@ -567,7 +567,7 @@ class MarioExpert:
         #returns a list of coordinates for any enemys within 2 tiles of mario. Is -1 if no enemy
         enemy_list = deque()
 
-        for i in range(-4,4):
+        for i in range(-5,4):
             for j in range(-3,4):
                 try:
                     if self.gamespace[self.mario_row+ i][self.mario_col + j] >= 15:
