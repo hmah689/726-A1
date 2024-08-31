@@ -30,7 +30,7 @@ class LINK(Enum):
     WALK = 0
     FALL = 1
     JUMP = 2
-    FAITH_JUMP = -1
+    FAITH_JUMP = -1.5
 
 class STATUS(Enum):
     DONE = 0
@@ -77,7 +77,7 @@ class MarioController(MarioEnvironment):
 
     def __init__(
         self,
-        act_freq: int = 2,
+        act_freq: int = 10,
         emulation_speed: int = 1,
         headless: bool = False,
     ) -> None:
