@@ -139,7 +139,7 @@ class MarioController(MarioEnvironment):
                 status = self.faith(current_row,current_col,edge,enemy_row,enemy_col)
         #An edge has not been passed, go right by default
         else:
-            self.pyboy.send_button(self.valid_actions[ACTION.RIGHT.value])
+            self.send_button([ACTION.RIGHT.value])
 
         # Simply toggles the buttons being on or off for a duration of act_freq
         # self.pyboy.send_input(self.valid_actions[action])
