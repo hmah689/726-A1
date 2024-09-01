@@ -30,7 +30,7 @@ class LINK(Enum):
     WALK = 0
     FALL = 1
     JUMP = 2
-    FAITH_JUMP = -1
+    FAITH_JUMP = -2
 
 class STATUS(Enum):
     DONE = 0
@@ -535,8 +535,8 @@ class MarioExpert:
     def check_faith_link(self,row,column):
         """A faith jump link is for nodes up to 4 blocks seperation horizontally and 2 blocks seperation horizontally"""
         #check for nodes to the left
-        scan_height = 2
-        scan_width = 4
+        scan_height = 1
+        scan_width = 3
         for i in range(-scan_height-1,scan_height+1):
             for j in range(-scan_width-1,scan_width+1):
                 try:
@@ -573,8 +573,11 @@ class MarioExpert:
             self.edge = edge
         #otherwise a new edge does not exist, perhaps because mario is jumping
         else:
+            # executes+=1
             self.environment.run_action(self.mario_row,self.mario_col,self.edge,self.get_enemy_pos())
-
+            # #get unstuck by going left
+            # if(executes > 10000):
+            #     self.environment.send_button([ACTION.LEFT.value])
         return
 
 
