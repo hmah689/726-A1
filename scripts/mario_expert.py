@@ -178,7 +178,7 @@ class MarioController(MarioEnvironment):
         if col == edge.finish_col:
             return STATUS.DONE
         #If enemy exists that is within 2 cols
-        elif (abs(col-enemy_col) <= 2) and enemy_col > -1:
+        elif (abs(col-enemy_col) <= 4) and enemy_col > -1:
             #check if the enemy is above or below
             if (col == enemy_col):
                 #dodge backwards
@@ -222,7 +222,7 @@ class MarioController(MarioEnvironment):
         # C208       1    Mario's Y speed. (0x00 (a lot of speed) to 0x19 (no speed, top of jump)) (unintentionally reaches 0x1a and 0xff)
         # C20A       1    Mario is on the ground flag (0x01 = On the ground, 0x00 = In the air)
         # | (self._read_m(0xC208) <=0x15)
-        elif (enemy_row == -1) | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
+        elif (enemy_row == -1) | (abs(enemy_col-col) > 4 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
             #Check if on the same  or above row but to the left
             if row <= edge.finish_row and col < edge.finish_col:
                 self.send_button([ACTION.RIGHT.value])
@@ -296,22 +296,8 @@ class MarioController(MarioEnvironment):
             
         #an enemy is within two tiles of mario and mario is already in the air 
         else:
-            #if on the same level or below AVOID
-            if (row >= enemy_row):
-                #check if mario is to the left or under of enemy
-                if (col <= enemy_col):
-                    #Avoid left
-                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
-                    return STATUS.MOVING
-
-                #must be to the right of enemy
-                else:
-                    #Avoid right
-                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
-                    return STATUS.MOVING
-
             #higher than enemy then ATTACK
-            elif (row < enemy_row):
+            if (row < enemy_row) and abs(col - enemy_col) < 3:
                 #Check if to the left
                 if (col < enemy_col):
                     #steer above
@@ -326,7 +312,21 @@ class MarioController(MarioEnvironment):
                     #STOMP
                     self.send_button([ACTION.DOWN.value,ACTION.BUTT_B.value])
                     return STATUS.MOVING
-                
+            #if on the same level or below AVOID
+            else:
+                #check if mario is to the left or under of enemy
+                if (col <= enemy_col):
+                    #Avoid left
+                    self.send_button([ACTION.LEFT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
+                    return STATUS.MOVING
+
+                #must be to the right of enemy
+                else:
+                    #Avoid right
+                    self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value,ACTION.DOWN.value])
+                    return STATUS.MOVING
+
+
 
 class MarioExpert:
     """
