@@ -297,7 +297,7 @@ class MarioController(MarioEnvironment):
         #an enemy is within two tiles of mario and mario is already in the air 
         else:
             #higher than enemy then ATTACK
-            if (row < enemy_row) and abs(col - enemy_col) < 3:
+            if (row < enemy_row) and abs(col - enemy_col) < 4:
                 #Check if to the left
                 if (col < enemy_col):
                     #steer above
