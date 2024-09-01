@@ -279,7 +279,7 @@ class MarioController(MarioEnvironment):
         # C208       1    Mario's Y speed. (0x00 (a lot of speed) to 0x19 (no speed, top of jump)) (unintentionally reaches 0x1a and 0xff)
         # C20A       1    Mario is on the ground flag (0x01 = On the ground, 0x00 = In the air)
         # | (self._read_m(0xC208) <=0x15)
-        elif (enemy_row == -1) | (abs(enemy_col-col) > 2 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
+        elif (enemy_row == -1) | (abs(enemy_col-col) > 4 and abs(enemy_row-row) > 2) | (self._read_m(0xC20A) == 1):
             #Check if on the same  or above row but to the left
             if row < edge.finish_row and col < edge.finish_col:
                 self.send_button([ACTION.RIGHT.value,ACTION.BUTT_B.value])
