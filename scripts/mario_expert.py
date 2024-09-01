@@ -52,6 +52,10 @@ class GameGraph:
 class Node:
     def __init__(self):   
         self.edge_list = deque()
+        self.visited = False
+        self.cost = 0
+        self.parent = [0,0]
+        self.parent_link = None
     
     def add_edge(self,row, col, link_type):
         self.edge_list.append(Edge(row,col,link_type))
@@ -363,18 +367,8 @@ class MarioExpert:
 
         #execute actions
         #Always execute whichever edge leads furthers to the bottom right
-        score = 0
-        x = 0
-        try:
-            for n,edge in enumerate(self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list):
-                if (max(score, edge.finish_col + edge.link_type.value*2) > score):
-                    score = max(score, edge.finish_col + edge.link_type.value*2)
-                    x = n
-            return self.gamegraph.node_array[self.mario_row,self.mario_col].edge_list[x]
-        except:
-            return 
-
-
+        path = self.dijkstra
+        return self.gamegraph[path[1][0],path[1][1]].link_edge
 
         # Implement your code here to choose the best action
         # time.sleep(0.1)
@@ -651,6 +645,43 @@ class MarioExpert:
                     #this exist for out of bound exceptions
                     pass
         return enemy_list
+
+    def dijkstra(self,row,col,target,visited_list,predecessor_list:deque):
+
+        #termination condition
+        if col == target:
+            predecessor_list.appendleft(self.gamegraph[row,col].parent)
+            return predecessor_list
+        #otherwise cost needs to be updated and next node returned
+        else:
+            max = 0
+            next_node_row = 0
+            next_node_col = 0
+            visited_list.append([row,col])
+            for coords in visited_list:
+                current_vertex = self.gamegraph[coords[0],coords[1]]
+                for edge in current_vertex.edge_list:
+                    #update cost for each reacheable node if there is a better way to get there (higher "cost" function which I know is backwards stfu)
+                    if self.gamegraph[row,col].cost + self.edge_cost(edge) >= self.gamegraph[edge.finish_row,edge.finish_col].cost:
+                        self.gamegraph[edge.finish_row,edge.finish_col].cost = self.gamegraph[row,col].cost + self.edge_cost(edge)#cost of current node + edge cost
+                        #update parent coords
+                        self.gamegraph[edge.finish_row,edge.finish_col].parent = [row,col]
+                        #update parent edge
+                        self.gamegraph[edge.finish_row,edge.finish_col].parent_link = edge
+                        #set as next node
+                        if self.gamegraph[edge.finish_row,edge.finish_col].cost > max:
+                            next_node_row = edge.finish_row
+                            next_node_col = edge.finish_col
+                            max = self.gamegraph[edge.finish_row, edge.finish_col]
+            [parent_row,parent_col] = self.dijkstra(self,next_node_row,next_node_col,target,visited_list)[0] #return
+            predecessor_list.appendleft(self.gamegraph[parent_row,parent_col].parent)
+            return predecessor_list
+
+
+    def edge_cost(edge: Edge):
+        reward = edge.finish_col + edge.link_type.value*2
+        return reward
+
         
 
 #     #new functions
