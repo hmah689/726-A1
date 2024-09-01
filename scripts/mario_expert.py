@@ -569,7 +569,7 @@ class MarioExpert:
         edge = self.choose_action()
         #if a new valid new edge exists
         if (self.environment.get_x_position() > 2550):
-            self.environment.send_button([ACTION.RIGHT.value])
+            self.environment.run_action(self.mario_row,self.mario_col,None, self.get_enemy_pos())
         elif (edge != None):
             self.environment.run_action(self.mario_row,self.mario_col,edge,self.get_enemy_pos())
             self.edge = edge
