@@ -640,7 +640,7 @@ class MarioExpert:
         enemy_list = deque()
 
         for i in range(-5,4):
-            for j in range(-3,4):
+            for j in range(-5,6):
                 try:
                     if self.gamespace[self.mario_row+ i][self.mario_col + j] >= 15:
                         enemy_list.append([self.mario_row+i,self.mario_col+j])
