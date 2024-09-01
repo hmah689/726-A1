@@ -424,14 +424,14 @@ class MarioExpert:
     
     def check_node_valid(self,row,col):
         """Returns true if mario can stand on the node"""
-        if (row > 2) and (self.gamespace[row-1][col] <= 9) and (self.gamespace[row-2][col] <= 9) and (self.gamespace[row][col] >= 10):
+        if (row > 2) and (self.gamespace[row-1][col] <= 9) and (self.gamespace[row][col] >= 10):
             return True
         else:
             return False
         
     def check_empty(self,row,col):
         """Returns true if the area above the node is empty i.e zero"""
-        if (row > 2) and (self.gamespace[row-1][col] <= 9) and (self.gamespace[row-2][col] <= 9):
+        if (row > 2) and (self.gamespace[row-1][col] <= 9) :
             return True
         else:
             return False
